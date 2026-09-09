@@ -1,0 +1,4 @@
+bin/
+obj/
+appsettings.Production.json
+*.user
