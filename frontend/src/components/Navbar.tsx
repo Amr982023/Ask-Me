@@ -41,15 +41,15 @@ export default function Navbar() {
       <div className="max-w-4xl mx-auto px-4 h-16 flex items-center gap-3 justify-between">
         <Link to="/" className="flex items-center gap-2 font-extrabold text-xl text-brand-700 dark:text-brand-400 shrink-0">
           <span className="w-8 h-8 rounded-xl bg-brand-600 text-white flex items-center justify-center text-sm">?</span>
-          <span className="hidden sm:inline">Ask Me</span>
+          <span>Ask Me</span>
         </Link>
 
-        <div className="flex-1 max-w-xs hidden sm:block">
+        <div className="flex-1 min-w-[140px] max-w-xs hidden md:block">
           <SearchBar />
         </div>
 
         {/* Desktop nav - unchanged, every link inline */}
-        <nav className="hidden sm:flex items-center gap-2 sm:gap-3 shrink-0">
+        <nav className="hidden md:flex items-center gap-2 sm:gap-3 shrink-0">
           {user ? (
             <>
               <Link to="/dashboard" className={linkClass}>Dashboard</Link>
@@ -69,8 +69,8 @@ export default function Navbar() {
           )}
         </nav>
 
-        {/* Mobile: theme toggle always visible, everything else behind a menu button */}
-        <div className="flex sm:hidden items-center gap-1 shrink-0">
+        {/* Mobile/tablet: theme toggle always visible, everything else behind a menu button */}
+        <div className="flex md:hidden items-center gap-1 shrink-0">
           <ThemeToggle />
           {!user && (
             <Link to="/register" className="btn-primary !px-3 !py-2 text-sm">Sign up</Link>
@@ -89,12 +89,12 @@ export default function Navbar() {
         </div>
       </div>
 
-      <div className="sm:hidden px-4 pb-3">
+      <div className="md:hidden px-4 pb-3">
         <SearchBar />
       </div>
 
       {menuOpen && (
-        <div className="sm:hidden border-t border-slate-200 dark:border-slate-800 px-2 py-2 flex flex-col gap-0.5">
+        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 px-2 py-2 flex flex-col gap-0.5">
           {user ? (
             <>
               <Link to="/dashboard" className={mobileLinkClass} onClick={closeMenu}>Dashboard</Link>
