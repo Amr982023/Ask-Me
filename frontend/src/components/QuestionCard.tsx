@@ -12,6 +12,33 @@ function formatDateTime(iso: string) {
   return `${datePart} at ${timePart}`;
 }
 
+type TextDirection = "auto" | "ltr" | "rtl";
+const NEXT_DIRECTION: Record<TextDirection, TextDirection> = { auto: "ltr", ltr: "rtl", rtl: "auto" };
+const DIRECTION_LABEL: Record<TextDirection, string> = { auto: "Auto", ltr: "LTR", rtl: "RTL" };
+
+/**
+ * Cycles Auto -> LTR -> RTL -> Auto for this question's text. "Auto" lets
+ * the browser detect direction per-paragraph (usually right for pure-Arabic
+ * or pure-English text), which is a better default than forcing LTR - but
+ * mixed Arabic+English in one paragraph can still confuse that detection,
+ * so a manual override is offered too.
+ */
+function DirectionToggle({ direction, onChange }: { direction: TextDirection; onChange: (d: TextDirection) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange(NEXT_DIRECTION[direction]); }}
+      title={`Text direction: ${DIRECTION_LABEL[direction]} (click to change)`}
+      className="flex items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500 hover:text-brand-700 dark:hover:text-brand-400 px-1.5 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0"
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 7h11M14 7l-3-3M14 7l-3 3M21 17H10M10 17l3-3M10 17l3 3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {DIRECTION_LABEL[direction]}
+    </button>
+  );
+}
+
 function FollowUpSection({ questionId, initial }: { questionId: string; initial: QuestionDto["followUps"] }) {
   const [followUps, setFollowUps] = useState(initial);
   const [open, setOpen] = useState(false);
@@ -41,7 +68,7 @@ function FollowUpSection({ questionId, initial }: { questionId: string; initial:
         <div className="flex flex-col gap-2 mb-2">
           {followUps.map((f) => (
             <div key={f.id} className="pl-4 border-l-2 border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400">
-              {f.content}
+              <span dir="auto" className="block">{f.content}</span>
               <span className="block text-xs text-slate-400 dark:text-slate-500 mt-0.5">{formatDateTime(f.createdAt)}</span>
             </div>
           ))}
@@ -83,6 +110,12 @@ interface Props {
 }
 
 export default function QuestionCard({ question, linkToDetail = true, showOwnerControls = false, onOwnerChange }: Props) {
+  // One direction override per card, applied to both the question and its
+  // answer - starts at "auto" (browser-detected) and only needs a manual
+  // pick when a question mixes Arabic and English in one paragraph and the
+  // browser guesses the base direction wrong.
+  const [direction, setDirection] = useState<TextDirection>("auto");
+
   // Owner-controlled cards are never wrapped in an outer Link (buttons/forms
   // inside an <a> would be broken/invalid HTML either way), so interactive
   // content (video, referenced-answer link, follow-ups) is safe to render
@@ -91,7 +124,7 @@ export default function QuestionCard({ question, linkToDetail = true, showOwnerC
   const interactive = !linkToDetail || showOwnerControls;
 
   const header = (
-    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1.5 flex-wrap">
+    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1.5 flex-wrap pr-9">
       {question.isAnonymous ? (
         <span className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full font-medium">
           Anonymous
@@ -115,12 +148,12 @@ export default function QuestionCard({ question, linkToDetail = true, showOwnerC
   const questionAndAnswer = (
     <>
       {header}
-      <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words">{question.content}</p>
+      <p dir={direction} className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words">{question.content}</p>
 
       {question.answer && (
         <div className="mt-3 pl-4 border-l-2 border-brand-200 dark:border-brand-900">
           <p className="text-sm font-semibold text-brand-700 dark:text-brand-400 mb-1">Answer</p>
-          <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words">{question.answer.content}</p>
+          <p dir={direction} className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words">{question.answer.content}</p>
 
           {question.answer.imageUrl && (
             <img
@@ -148,7 +181,7 @@ export default function QuestionCard({ question, linkToDetail = true, showOwnerC
               onClick={(e) => e.stopPropagation()}
             >
               <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">Referenced answer</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400 truncate">{question.answer.referencedAnswer.questionContent}</p>
+              <p dir="auto" className="text-sm text-slate-600 dark:text-slate-400 truncate">{question.answer.referencedAnswer.questionContent}</p>
             </Link>
           )}
         </div>
@@ -159,12 +192,15 @@ export default function QuestionCard({ question, linkToDetail = true, showOwnerC
   return (
     <div className="card p-4 flex gap-4">
       <VoteButton questionId={question.id} initialCount={question.voteCount} initialHasVoted={question.hasVoted} />
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 relative">
         {linkToDetail && !showOwnerControls ? (
           <Link to={`/q/${question.id}`} className="block hover:opacity-90">{questionAndAnswer}</Link>
         ) : (
           questionAndAnswer
         )}
+        <div className="absolute top-0 right-0">
+          <DirectionToggle direction={direction} onChange={setDirection} />
+        </div>
         {interactive && question.answer && (
           <FollowUpSection questionId={question.id} initial={question.followUps} />
         )}
